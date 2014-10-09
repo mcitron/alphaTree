@@ -822,7 +822,7 @@ void alphaTree::plotRateNint()
     cuts["metMhtDivHt"] = ((mhtDivHtUct >= 0.3 && htUct >= 125.)) ;
     cuts["metMht"] = ((mhtPtUct >= 44 && htUct >= 125)) ;
 
-    cuts["alphaTCalo"] = alphaTCalo >= 0.57 && htCalo >= 200;
+    cuts["alphaTCalo"] = alphaTCalo >= 0.55 && htCalo >= 200;
     cuts["MHTCalo"] = mhtPtCalo >= 130 && htCalo >= 200;
 
     denom->Fill(nInt);
@@ -1024,9 +1024,10 @@ std::map<TString,TH2D *> alphaTree::plotRate2dQcd(TString tempstring2)
 
   std::map<TString,TH2D*> rateVar;
   rateVar["htMhtUct"] = new TH2D(tempstring2+"mhtDivHt",";Ht;mhtDivHt",50,0,200.,20,0.,1.);
+  rateVar["htAlphaTCalo"] = new TH2D(tempstring2+"alphaTCalo",";Ht;alphaT",40,0,800.,100,0.,1.);
 
   Long64_t nentries =fChain->GetEntriesFast();
-  nentries = 1000;
+  //nentries = 1000;
   Long64_t nbytes = 0, nb = 0;
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
     Long64_t ientry = LoadTree(jentry);
@@ -1034,6 +1035,7 @@ std::map<TString,TH2D *> alphaTree::plotRate2dQcd(TString tempstring2)
     if (ientry < 0) break;
 
     rateVar["htMhtUct"]->Fill(htUct,mhtDivHtUct);
+    if(jetPtsCalo->size() > 1 && jetPtsCalo->at(1) > 100) rateVar["htAlphaTCalo"]->Fill(htCalo,alphaTCalo);
     if (jentry%10000 == 0) std::cout << std::setprecision(4) << jentry*100./nentries << "%     " << "\r" <<std::flush;
   }
   for (std::map<TString,TH2D*>::iterator iVar = rateVar.begin(); iVar != rateVar.end(); iVar++)
@@ -1080,9 +1082,10 @@ std::map<TString,TH1D*> alphaTree::plotRate1dQcd(TString temp)
 
 void alphaTree::plotRate()
 {
-  TFile* fOut = new TFile("ratePlots.root","recreate");
+  TFile* fOut = new TFile("ratePlotsBig.root","recreate");
   fOut->cd();
   TH2D* ratesMhtDivHt = new TH2D("mhtDivHt",";Ht;mhtDivHt",50,0,200.,20,0.,1.);
+  TH2D* ratesAlphaTCalo = new TH2D("alphaTCalo",";Ht;alphaT",40,0,800.,100,0.,1.);
   TH2D * fullRateMhtDivHt = new TH2D("fullMhtDivHt",";Ht;mhtDivHt",50,0,200.,20,0.,1.);
   TH2D * fullRateMht = new TH2D("fullMht",";Ht;mhtDivHt",50,0,200.,50,0.,200.);
   TH2D * fullRateMETMht = new TH2D("fullMETMht",";Ht;mhtDivHt",50,0,200.,50,0.,200.);
@@ -1095,6 +1098,7 @@ void alphaTree::plotRate()
   TH2D * fullRateDphi = new TH2D("fulldphi",";jet2pT;dPhi12",50,0.,200.,10,-0.5,9.5);
 
   Long64_t nentries =fChain->GetEntriesFast();
+  //nentries = 10000000;
   Long64_t nbytes = 0, nb = 0;
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
     Long64_t ientry = LoadTree(jentry);
@@ -1102,6 +1106,7 @@ void alphaTree::plotRate()
     if (ientry < 0) break;
 
     ratesMhtDivHt->Fill(htUct,mhtDivHtUct);
+    if (jetPtsCalo->size() > 1 && jetPtsCalo->at(1) > 100) ratesAlphaTCalo->Fill(htCalo,alphaTCalo);
     if(!(htUct > 125 && mhtDivHtUct > 0.3)) addRateMhtDivHt->Fill(htUct,mhtDivHtUct);
     if(htUct >= 125.)
     {
@@ -1149,6 +1154,7 @@ void alphaTree::plotRate()
   TH2D * rates9 = makeCumu(addFullRateMETMhtDivHt,(double)  nentries/ZB_XSECTION);
   TH2D * rates10 = makeCumu(fullRateMht, (double) nentries/ZB_XSECTION);
   TH2D * rates11 = makeCumu(fullRateMETMht, (double) nentries/ZB_XSECTION);
+  TH2D * rates12 = makeCumu(ratesAlphaTCalo, (double) nentries/ZB_XSECTION);
   //temp.Write();
   rates2->Write();
   rates3->Write();
@@ -1160,6 +1166,7 @@ void alphaTree::plotRate()
   rates9->Write();
   rates10->Write();
   rates11->Write();
+  rates12->Write();
 }
 void alphaTree::plotPtForwardCut()
 {
