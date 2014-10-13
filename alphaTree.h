@@ -98,7 +98,7 @@ public :
    Float_t         htCalo;
    Float_t         etCalo;
    Float_t         dhtCalo;
-   UInt_t          multiplicityCalo;
+   UInt_t          multiplicity50Calo;
    Float_t         mhtDivHtCalo;
    Float_t         alphaTCalo;
    Float_t         jetDPhi12Calo;
@@ -211,7 +211,7 @@ public :
    TBranch        *b_htCalo;   //!
    TBranch        *b_etCalo;   //!
    TBranch        *b_dhtCalo;   //!
-   TBranch        *b_multiplicityCalo;   //!
+   TBranch        *b_multiplicity50Calo;   //!
    TBranch        *b_mhtDivHtCalo;   //!
    TBranch        *b_alphaTCalo;   //!
    TBranch        *b_jetDPhi12Calo;   //!
@@ -449,7 +449,7 @@ void alphaTree::Init(TTree *tree)
   fChain->SetBranchAddress("htCalo", &htCalo, &b_htCalo);
   fChain->SetBranchAddress("etCalo", &etCalo, &b_etCalo);
   fChain->SetBranchAddress("dhtCalo", &dhtCalo, &b_dhtCalo);
-  fChain->SetBranchAddress("multiplicityCalo", &multiplicityCalo, &b_multiplicityCalo);
+  fChain->SetBranchAddress("multiplicity50Calo", &multiplicity50Calo, &b_multiplicity50Calo);
   fChain->SetBranchAddress("mhtDivHtCalo", &mhtDivHtCalo, &b_mhtDivHtCalo);
   fChain->SetBranchAddress("alphaTCalo", &alphaTCalo, &b_alphaTCalo);
   fChain->SetBranchAddress("jetDPhi12Calo", &jetDPhi12Calo, &b_jetDPhi12Calo);

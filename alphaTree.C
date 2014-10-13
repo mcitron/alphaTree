@@ -888,11 +888,12 @@ void alphaTree::plotRateNint()
 std::map<int,TH1D*> alphaTree::plotRateAlphaTJetThreshQcd(TString temp)
 {
   std::map<int,TH1D *> alphaTPlots;
-  alphaTPlots[54] = new TH1D(temp+"alphaTRate54",";Thresh;Rate",8,20,100);
-  alphaTPlots[58] = new TH1D(temp+"alphaTRate58",";Thresh;Rate",8,20,100);
-  alphaTPlots[62] = new TH1D(temp+"alphaTRate62",";Thresh;Rate",8,20,100);
-  alphaTPlots[66] = new TH1D(temp+"alphaTRate66",";Thresh;Rate",8,20,100);
-  alphaTPlots[70] = new TH1D(temp+"alphaTRate70",";Thresh;Rate",8,20,100);
+  alphaTPlots[54] = new TH1D(temp+"alphaTRate54",";Thresh;Rate",7,30,100);
+  alphaTPlots[58] = new TH1D(temp+"alphaTRate58",";Thresh;Rate",7,30,100);
+  alphaTPlots[62] = new TH1D(temp+"alphaTRate62",";Thresh;Rate",7,30,100);
+  alphaTPlots[66] = new TH1D(temp+"alphaTRate66",";Thresh;Rate",7,30,100);
+  alphaTPlots[70] = new TH1D(temp+"alphaTRate70",";Thresh;Rate",7,30,100);
+  alphaTPlots[65] = new TH1D(temp+"alphaTRate65",";Thresh;Rate",7,30,100);
 
   Long64_t nentries = fChain->GetEntriesFast();
   //nentries = 100000000;
@@ -903,17 +904,18 @@ std::map<int,TH1D*> alphaTree::plotRateAlphaTJetThreshQcd(TString temp)
     nb = fChain->GetEntry(jentry); nbytes+=nb;   
     if (ientry < 0) break;
     //for (std::map<TString,TH1D*>::iterator iVar = rateVar.begin(); iVar != rateVar.end(); iVar++)
-    int nXBins = alphaTPlots[54]->GetNbinsX();
+    int nXBins = alphaTPlots[65]->GetNbinsX();
     int jetNum = 0;
     double alphaT = 0.0;
     double ht = 0.0;
     for (int xbins = nXBins; xbins >= 1; xbins--)
     {
-      double jetThresh = alphaTPlots[54]->GetBinLowEdge(xbins);
+      double jetThresh = alphaTPlots[65]->GetBinLowEdge(xbins);
+      //std::cout << jetThresh << std::endl;
       {
-	if (jetPtsCalo->size() > jetNum && jetPtsCalo->at(jetNum+1) >= jetThresh && jetPtsCalo->at(1) >= 100)
+	if (jetPtsCalo->size() > 1 && jetPtsCalo->at(1) >= 100 && jetPtsCalo->size() >= jetNum && jetPtsCalo->at(jetNum) >= jetThresh)
 	{
-	  while (jetPtsCalo->size() > jetNum && jetPtsCalo->at(jetNum) >= jetThresh && jetNum <= 15)
+	  while (jetPtsCalo->size() >= jetNum && jetPtsCalo->at(jetNum) >= jetThresh && jetNum <= 10)
 	  {
 	    ht+=jetPtsCalo->at(jetNum);
 	    jetNum++;
@@ -927,13 +929,22 @@ std::map<int,TH1D*> alphaTree::plotRateAlphaTJetThreshQcd(TString temp)
 	for (std::map<int,TH1D*>::iterator iPlot = alphaTPlots.begin(); iPlot != alphaTPlots.end(); iPlot++) 
 	{
 	  if (100*alphaT > iPlot->first && ht >= 200) iPlot->second->AddBinContent(xbins,weight*1.4E-2/nentries); 
+	 /* if (xbins == 3 && 100*alphaT > iPlot->first && ht >= 200) 
+	  {
+	    std::cout << "compare aT: " << alphaT << "   " << alphaTCalo << " compare ht  " << ht << "  "<< htCalo << " mult:" << jetNum << "  " << multiplicity50Calo << std::endl;  
+	    for (int i = 0; i < jetPtsCalo->size(); i++)
+	    {
+	      std::cout << jetPtsCalo->at(i) << std::endl;
+	    } 
+	    std::cout << "==============" << std::endl;
+	  }*/
 	}
       }
 
     }
 
 
-    if (jentry%10000 == 0) std::cout << std::setprecision(4) << jentry*100./nentries << "%     " << "\r" <<std::flush;
+    //if (jentry%10000 == 0) std::cout << std::setprecision(4) << jentry*100./nentries << "%     " << "\r" <<std::flush;
   }
   return alphaTPlots;
 }
@@ -1191,7 +1202,7 @@ std::map<TString,TH2D *> alphaTree::plotRate2dQcd(TString tempstring2)
     if (ientry < 0) break;
 
     rateVar["htMhtUct"]->Fill(htUct,mhtDivHtUct);
-    if(jetPtsCalo->size() > 1 && jetPtsCalo->at(1) > 100) rateVar["htAlphaTCalo"]->Fill(htCalo,alphaTCalo);
+    if(jetPtsCalo->size() > 1 && jetPtsCalo->at(1) >= 100) rateVar["htAlphaTCalo"]->Fill(htCalo,alphaTCalo);
     if (jentry%10000 == 0) std::cout << std::setprecision(4) << jentry*100./nentries << "%     " << "\r" <<std::flush;
   }
   for (std::map<TString,TH2D*>::iterator iVar = rateVar.begin(); iVar != rateVar.end(); iVar++)
