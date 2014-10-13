@@ -18,6 +18,53 @@ TH1D * makeCumu1D(TH1D * input, double norm);
 TH1 * makeCumuInv1D(TH1 * input, double norm);
 TH2 * makeCumuInv2D(TH2 * input, double norm);
 int ZB_XSECTION=LHC_FREQUENCY*N_25NS_BUNCHES;
+
+double alphaTree::alphaTJetThesh(unsigned int jetNum)
+{
+  double alphaT = 0.;
+  double min_delta_sum_et = -1.;
+
+  if (jetNum > 1)
+  {
+    unsigned int jetLimit = jetNum;
+    double ht = 0.0;
+    double mhtX = 0.0;
+    double mhtY = 0.0;
+    for ( unsigned j=0; j < jetLimit; j++ ) { //@@ iterate through jets
+      {
+	ht   += jetPtsCalo->at(j);
+	mhtX += jetPtsCalo->at(j) *cos(jetPhisCalo->at(j));
+	mhtY += jetPtsCalo->at(j) * sin (jetPhisCalo->at(j));
+      }
+    }
+    double mht2 = mhtX*mhtX + mhtY*mhtY;
+    //      for ( unsigned i=0; i < unsigned(1<<(jets.size()-1)); i++ )  //@@ iterate through different combinations
+    for ( unsigned i=0; i < unsigned(1<<( jetLimit - 1)); i++ ) { //@@ iterate through different combinations
+      double delta_sum_et = 0.;
+      for ( unsigned j=0; j < jetLimit; j++ ) { //@@ iterate through jets
+	delta_sum_et += jetPtsCalo->at(j) * ( 1 - 2 * (int(i>>j)&1) );
+      }
+      if ( ( fabs(delta_sum_et) < min_delta_sum_et || min_delta_sum_et < 0. ) ) {
+	min_delta_sum_et = fabs(delta_sum_et);
+      }
+    }
+    if ( min_delta_sum_et < 0. ) { alphaT=0.; }
+
+    // Alpha_T
+    alphaT = 0.5 * ( ht - min_delta_sum_et ) / sqrt( ht*ht - mht2);
+    if (alphaT > 10){ alphaT = 10; }
+    //    return ( 0.5 * ( sum_et - min_delta_sum_et ) / sqrt( sum_et*sum_et - (sum_met*sum_met) ) );
+  }
+  else
+  {   
+    alphaT = 0.;
+  }
+
+  return alphaT;
+
+}
+
+
 void alphaTree::Loop()
 {
   //   In a ROOT session, you can do:
@@ -838,6 +885,115 @@ void alphaTree::plotRateNint()
     num[iCut->first]->Write();
   }
 }
+std::map<int,TH1D*> alphaTree::plotRateAlphaTJetThreshQcd(TString temp)
+{
+  std::map<int,TH1D *> alphaTPlots;
+  alphaTPlots[54] = new TH1D(temp+"alphaTRate54",";Thresh;Rate",8,20,100);
+  alphaTPlots[58] = new TH1D(temp+"alphaTRate58",";Thresh;Rate",8,20,100);
+  alphaTPlots[62] = new TH1D(temp+"alphaTRate62",";Thresh;Rate",8,20,100);
+  alphaTPlots[66] = new TH1D(temp+"alphaTRate66",";Thresh;Rate",8,20,100);
+  alphaTPlots[70] = new TH1D(temp+"alphaTRate70",";Thresh;Rate",8,20,100);
+
+  Long64_t nentries = fChain->GetEntriesFast();
+  //nentries = 100000000;
+  Long64_t nbytes = 0, nb = 0;
+  int test = 0;
+  for (Long64_t jentry=0; jentry<nentries;jentry++) {
+    Long64_t ientry = LoadTree(jentry);
+    nb = fChain->GetEntry(jentry); nbytes+=nb;   
+    if (ientry < 0) break;
+    //for (std::map<TString,TH1D*>::iterator iVar = rateVar.begin(); iVar != rateVar.end(); iVar++)
+    int nXBins = alphaTPlots[54]->GetNbinsX();
+    int jetNum = 0;
+    double alphaT = 0.0;
+    double ht = 0.0;
+    for (int xbins = nXBins; xbins >= 1; xbins--)
+    {
+      double jetThresh = alphaTPlots[54]->GetBinLowEdge(xbins);
+      {
+	if (jetPtsCalo->size() > jetNum && jetPtsCalo->at(jetNum+1) >= jetThresh && jetPtsCalo->at(1) >= 100)
+	{
+	  while (jetPtsCalo->size() > jetNum && jetPtsCalo->at(jetNum) >= jetThresh && jetNum <= 15)
+	  {
+	    ht+=jetPtsCalo->at(jetNum);
+	    jetNum++;
+	  }
+	  if (ht >= 200)
+	  {
+	    alphaT = alphaTJetThesh(jetNum);
+	  }
+	}
+	//alphaTThresh->SetBinContent(nXbins+1-xbins,(double)dummy/norm);
+	for (std::map<int,TH1D*>::iterator iPlot = alphaTPlots.begin(); iPlot != alphaTPlots.end(); iPlot++) 
+	{
+	  if (100*alphaT > iPlot->first && ht >= 200) iPlot->second->AddBinContent(xbins,weight*1.4E-2/nentries); 
+	}
+      }
+
+    }
+
+
+    if (jentry%10000 == 0) std::cout << std::setprecision(4) << jentry*100./nentries << "%     " << "\r" <<std::flush;
+  }
+  return alphaTPlots;
+}
+void alphaTree::plotRateAlphaTJetThresh()
+{
+  TFile* fOut = new TFile("ratePlotsAlphaT.root","recreate");
+  fOut->cd();
+  std::map<int,TH1D *> alphaTPlots;
+  alphaTPlots[54] = new TH1D("alphaTRate54",";Thresh;Rate",8,20,100);
+  alphaTPlots[58] = new TH1D("alphaTRate58",";Thresh;Rate",8,20,100);
+  alphaTPlots[62] = new TH1D("alphaTRate62",";Thresh;Rate",8,20,100);
+  alphaTPlots[66] = new TH1D("alphaTRate66",";Thresh;Rate",8,20,100);
+  alphaTPlots[70] = new TH1D("alphaTRate70",";Thresh;Rate",8,20,100);
+
+  Long64_t nentries = fChain->GetEntriesFast();
+  //nentries = 100000000;
+  Long64_t nbytes = 0, nb = 0;
+  int test = 0;
+  for (Long64_t jentry=0; jentry<nentries;jentry++) {
+    Long64_t ientry = LoadTree(jentry);
+    nb = fChain->GetEntry(jentry); nbytes+=nb;   
+    if (ientry < 0) break;
+    //for (std::map<TString,TH1D*>::iterator iVar = rateVar.begin(); iVar != rateVar.end(); iVar++)
+    int nXBins = alphaTPlots[54]->GetNbinsX();
+    int jetNum = 0;
+    double alphaT = 0.0;
+    double ht = 0.0;
+    for (int xbins = nXBins; xbins >= 1; xbins--)
+    {
+      double jetThresh = alphaTPlots[54]->GetBinLowEdge(xbins);
+      {
+	if (jetPtsCalo->size() > jetNum && jetPtsCalo->at(jetNum+1) >= jetThresh && jetPtsCalo->at(1) >= 100)
+	{
+	  while (jetPtsCalo->size() > jetNum && jetPtsCalo->at(jetNum) >= jetThresh && jetNum <= 15)
+	  {
+	    ht+=jetPtsCalo->at(jetNum);
+	    jetNum++;
+	  }
+	  if (ht >= 200)
+	  {
+	    alphaT = alphaTJetThesh(jetNum);
+	  }
+	}
+	//alphaTThresh->SetBinContent(nXbins+1-xbins,(double)dummy/norm);
+	for (std::map<int,TH1D*>::iterator iPlot = alphaTPlots.begin(); iPlot != alphaTPlots.end(); iPlot++) 
+	{
+	  if (100*alphaT > iPlot->first && ht >= 200) iPlot->second->AddBinContent(xbins,(double)(ZB_XSECTION)/nentries); 
+	}
+      }
+
+    }
+
+
+    if (jentry%10000 == 0) std::cout << std::setprecision(4) << jentry*100./nentries << "%     " << "\r" <<std::flush;
+  }
+  for (std::map<int,TH1D*>::iterator iPlot = alphaTPlots.begin(); iPlot != alphaTPlots.end();iPlot++) 
+  {
+    iPlot->second->Write();
+  }
+}
 void alphaTree::plotRate1D()
 {
   TFile* fOut = new TFile("ratePlots1D.root","recreate");
@@ -1046,6 +1202,23 @@ std::map<TString,TH2D *> alphaTree::plotRate2dQcd(TString tempstring2)
   }
   return rateVar;
 }
+TH1D * alphaTree::plotQScaleQcd(TString temp)
+{
+  TH1D * qScaleHist = new TH1D(temp+"qScale",";pT;",500,0,500);
+
+  Long64_t nentries = fChain->GetEntriesFast();
+  nentries = 100000;
+  Long64_t nbytes = 0, nb = 0;
+  int test = 0;
+  for (Long64_t jentry=0; jentry<nentries;jentry++) {
+    Long64_t ientry = LoadTree(jentry);
+    nb = fChain->GetEntry(jentry); nbytes+=nb;   
+    if (ientry < 0) break;
+    qScaleHist->Fill(qScale,weight);
+    if (jentry%10000 == 0) std::cout << std::setprecision(4) << jentry*100./nentries << "%     " << "\r" <<std::flush;
+  }
+  return qScaleHist;
+}
 std::map<TString,TH1D*> alphaTree::plotRate1dQcd(TString temp)
 {
   std::map<TString,TH1D*> rateVar;
@@ -1073,11 +1246,48 @@ std::map<TString,TH1D*> alphaTree::plotRate1dQcd(TString temp)
   }
   for (std::map<TString,TH1D*>::iterator iVar = rateVar.begin(); iVar != rateVar.end(); iVar++)
   {
-    TH1D * temp = makeCumu1D(iVar->second, (double)nentries/(weight *1.4E-2));
-    iVar->second = (TH1D*) temp->Clone();
-    delete temp;
+    TH1D * temp2 = makeCumu1D(iVar->second, (double)nentries/(weight *1.4E-2));
+    iVar->second = (TH1D*) temp2->Clone();
+    delete temp2;
   }
   return rateVar;
+}
+std::map<TString,TH1D*> alphaTree::plotRateNintQcd(TString temp)
+{
+  std::map<TString,bool > cuts;
+  cuts["alphaTCalo"] = false;
+  cuts["METCalo"] = false;
+
+  std::map<TString,TH1D *> num;
+  TH1D * denom = new TH1D(temp+"total",";nInt;",20,20,80);
+  for (std::map<TString,bool>::iterator iCut = cuts.begin();iCut != cuts.end(); iCut++)
+  {
+    num[iCut->first] = new TH1D(temp+iCut->first,";nInt;",20,20,80);
+  }
+
+  Long64_t nentries = fChain->GetEntriesFast();
+  Long64_t nbytes = 0, nb = 0;
+  int test = 0;
+  for (Long64_t jentry=0; jentry<nentries;jentry++) {
+    Long64_t ientry = LoadTree(jentry);
+    nb = fChain->GetEntry(jentry); nbytes+=nb;   
+    if (ientry < 0) break;
+
+    cuts["alphaTCalo"] = alphaTCalo >= 0.65 && htCalo >= 200 && jetPtsCalo->size() > 1 && jetPtsCalo->at(1) >= 100;
+    cuts["METCalo"] = metPtCalo >= 130 && htCalo >= 200 && jetPtsCalo->size() > 1 && jetPtsCalo->at(1) >= 100;
+
+    denom->Fill(nInt);
+    for (std::map<TString,bool>::iterator iCut = cuts.begin();iCut != cuts.end(); iCut++)
+    {
+      if (iCut->second) num[iCut->first]->Fill(nInt,weight*1.4E-2);
+    }
+    if (jentry%10000 == 0) std::cout << std::setprecision(4) << jentry*100./nentries << "%     " << "\r" <<std::flush;
+  }
+  for (std::map<TString,bool>::iterator iCut = cuts.begin();iCut != cuts.end(); iCut++)
+  {
+    num[iCut->first]->Divide(denom);
+  }
+  return num;
 }
 
 void alphaTree::plotRate()

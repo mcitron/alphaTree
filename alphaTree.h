@@ -129,6 +129,7 @@ public :
    UInt_t          MuonNumber;
    UInt_t          run;
    UInt_t          nInt;
+   Float_t          qScale;
    Float_t         weight;
    UInt_t          lumi;
    ULong64_t       event;
@@ -240,6 +241,7 @@ public :
    TBranch        *b_jetMuonsPf;   //!
    TBranch        *b_run;   //!
    TBranch        *b_nint;   //!
+   TBranch        *b_qscale;   //!
    TBranch        *b_weight;   //!
 
    alphaTree(TTree *tree=0);
@@ -253,7 +255,11 @@ public :
    virtual void     findCalo();
    virtual void regionStudy();
    virtual void     plotPtForwardCut();
+   virtual void     plotRateAlphaTJetThresh();
+   virtual TH1D *   plotQScaleQcd(TString temp);
+   virtual std::map<int,TH1D*> plotRateAlphaTJetThreshQcd(TString temp);
    virtual void     findEff();
+   virtual double alphaTJetThesh(unsigned int jetNum);
    virtual void     dhtStudy();
    virtual void     onOffHt();
    virtual void     plotTurnOn();
@@ -262,6 +268,7 @@ public :
    virtual void     plotRate();
    virtual void     plotRate1D();
    virtual void     plotRateNint();
+   virtual std::map<TString,TH1D*> plotRateNintQcd(TString temp);
    virtual void     plotEff1D();
    virtual void     plotEff();
    virtual void     plotOfflineEff();
@@ -472,6 +479,7 @@ void alphaTree::Init(TTree *tree)
   fChain->SetBranchAddress("jetMuonsPf", &jetMuonsPf, &b_jetMuonsPf);
   fChain->SetBranchAddress("MuonNumber", &MuonNumber, &b_run);
   fChain->SetBranchAddress("nInt", &nInt, &b_nint);
+  fChain->SetBranchAddress("qScale", &qScale, &b_qscale);
   fChain->SetBranchAddress("weight", &weight, &b_weight);
   fChain->SetBranchAddress("run", &run, &b_run);
   fChain->SetBranchAddress("lumi", &lumi, &b_run);
